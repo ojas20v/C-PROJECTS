@@ -1,0 +1,350 @@
+#include <stdio.h>
+#include <string.h>
+
+// Constants
+#define MAX_DOCTORS 30
+#define MAX_VISITS 50
+#define MAX_CHAR 50
+
+// Function Prototypes
+void displayWelcomeMessage();
+int addDoctor(char doctors[MAX_DOCTORS][MAX_CHAR], int doctorCount);
+int removeDoctor(char doctors[MAX_DOCTORS][MAX_CHAR], int doctorCount, char visits[MAX_VISITS][MAX_CHAR], int visitCount);
+int addVisit(char doctors[MAX_DOCTORS][MAX_CHAR], int doctorCount, char visits[MAX_VISITS][MAX_CHAR], char patients[MAX_VISITS][MAX_CHAR], int visitCount);
+void listDoctors(char doctors[MAX_DOCTORS][MAX_CHAR], int doctorCount);
+void listVisits(char visits[MAX_VISITS][MAX_CHAR], char patients[MAX_VISITS][MAX_CHAR], int visitCount);
+int cancelVisit(char visits[MAX_VISITS][MAX_CHAR], char patients[MAX_VISITS][MAX_CHAR], int visitCount);
+int validateDoctorId(char id[]);
+int validateMonth(char month[]);
+int validateDay(char day[]);
+int validatePatientName(char name[]);
+int atoi(char str[]); // Custom ASCII-to-integer function
+void itoa(int number, char str[]); // Custom integer-to-ASCII function
+
+int main() {
+    char doctors[MAX_DOCTORS][MAX_CHAR];  // Array for storing doctors
+    char visits[MAX_VISITS][MAX_CHAR];    // Array for storing visits
+    char patients[MAX_VISITS][MAX_CHAR]; // Array for storing patient names
+    int doctorCount = 0;                 // Number of doctors in the system
+    int visitCount = 0;                  // Number of visits in the system
+    int exitFlag = 0;                    // Flag to control the main loop
+    char command[MAX_CHAR];
+
+    displayWelcomeMessage();
+
+    while (exitFlag == 0) {
+        printf("\nEnter a command: ");
+        fgets(command, MAX_CHAR, stdin);
+        command[strlen(command) - 1] = '\0'; // Remove the newline character from fgets
+
+        if (strcmp(command, "add doctor") == 0) {
+            doctorCount = addDoctor(doctors, doctorCount);
+        } else if (strcmp(command, "list doctors") == 0) {
+            listDoctors(doctors, doctorCount);
+        } else if (strcmp(command, "remove doctor") == 0) {
+            doctorCount = removeDoctor(doctors, doctorCount, visits, visitCount);
+        } else if (strcmp(command, "add visit") == 0) {
+            visitCount = addVisit(doctors, doctorCount, visits, patients, visitCount);
+        } else if (strcmp(command, "list visits") == 0) {
+            listVisits(visits, patients, visitCount);
+        } else if (strcmp(command, "cancel visit") == 0) {
+            visitCount = cancelVisit(visits, patients, visitCount);
+        } else if (strcmp(command, "exit") == 0) {
+            printf("Exiting the program. Goodbye!\n");
+            exitFlag = 1;
+        } else {
+            printf("Error: Unrecognized command.\n");
+        }
+    }
+
+    return 0;
+}
+
+// Function to display the welcome message
+void displayWelcomeMessage() {
+    printf("\n\t\t-------------------------------------------------------------\n");
+    printf("\t\t                  Welcome to LSHealth Manager               \n");
+    printf("\t\t-------------------------------------------------------------\n");
+}
+
+// Function to validate patient name
+int validatePatientName(char name[]) {
+    int valid = 1;
+    int i = 0;
+    if (strlen(name) == 0) {
+        valid = 0;
+    } else {
+        while (i < strlen(name)) {
+            if ((name[i] < 'A' || name[i] > 'Z') && (name[i] < 'a' || name[i] > 'z') && name[i] != ' ') {
+                valid = 0;
+            }
+            i++;
+        }
+    }
+    return valid;
+}
+
+// Function to validate a day
+int validateDay(char day[]) {
+    int dayValue = atoi(day);
+    if (dayValue >= 1 && dayValue <= 30) {
+        return 1;
+    }
+    return 0;
+}
+int addVisit(char doctors[MAX_DOCTORS][MAX_CHAR], int doctorCount, char visits[MAX_VISITS][MAX_CHAR], char patients[MAX_VISITS][MAX_CHAR], int visitCount) {
+    // Variable Declarations and Initializations
+    char patientName[MAX_CHAR] = {0};
+    char visitDetails[MAX_CHAR] = {0};
+    char doctorId[MAX_CHAR] = {0};
+    char month[MAX_CHAR] = {0};
+    char day[MAX_CHAR] = {0};
+    int validInput = 0;
+    int dashCount = 0;
+    int idLen = 0;
+    int monthStart = 0;
+    int dayStart = 0;
+    int i = 0, j = 0, k = 0;
+    int found = 0;
+    int valid_id = 0;
+    int valid_month = 0;
+    int valid_day = 0;
+    // Function Logic
+    if (visitCount >= MAX_VISITS) {
+        printf("Error: Maximum number of visits reached.\n");
+    } else if (doctorCount == 0) {
+        printf("Error: No doctors available to schedule visits.\n");
+    } else {
+        while (validInput == 0) {
+            // Get patient name
+            printf("Enter patient name: ");
+            fgets(patientName, MAX_CHAR, stdin);
+            patientName[strlen(patientName) - 1] = '\0'; // Remove newline character
+
+            if (validatePatientName(patientName) == 1) {
+                // Get visit details
+                printf("Enter visit details (format: ID-MONTH-DAY): ");
+                fgets(visitDetails, MAX_CHAR, stdin);
+                visitDetails[strlen(visitDetails) - 1] = '\0'; // Remove newline character
+
+                // Reset variables for parsing
+                dashCount = 0;
+                idLen = 0;
+                monthStart = 0;
+                dayStart = 0;
+                i = 0;
+
+                // Parse the input for ID, MONTH, and DAY
+                while (i < strlen(visitDetails)) {
+                    if (visitDetails[i] == '-' && dashCount == 0) {
+                        dashCount++;
+                        idLen = i;
+                        monthStart = i + 1;
+                    } else if (visitDetails[i] == '-' && dashCount == 1) {
+                        dashCount++;
+                        dayStart = i + 1;
+                    }
+                    i++;
+                }
+
+                // Extract ID, MONTH, and DAY if format is correct
+                if (dashCount == 2) {
+                    // Extract doctor ID
+                    for (i = 0; i < idLen; i++) {
+                        doctorId[i] = visitDetails[i];
+                    }
+                    doctorId[idLen] = '\0';
+
+                    // Extract month
+                    j = 0;
+                    for (i = monthStart; i < dayStart - 1; i++) {
+                        month[j] = visitDetails[i];
+                        j++;
+                    }
+                    month[j] = '\0';
+
+                    // Extract day
+                    j = 0;
+                    for (i = dayStart; i < strlen(visitDetails); i++) {
+                        day[j] = visitDetails[i];
+                        j++;
+                    }
+                    day[j] = '\0';
+                    valid_id = validateDoctorId(doctorId);
+                    valid_month = validateMonth(month);
+                    valid_day = validateDay(day);
+                    // Validate doctor ID, month, and day
+                    if (valid_id == 1 && valid_month == 1 && valid_day == 1) {
+                        // Check if the doctor exists
+                        found = 0;
+                        k = 0;
+                        while (k < doctorCount && found == 0) {
+                            int match = 1;
+                            int l = 0;
+
+                            // Manual string comparison for doctor ID
+                            while (l < strlen(doctorId) && match == 1) {
+                                if (doctors[k][l] != doctorId[l]) {
+                                    match = 0;
+                                }
+                                l++;
+                            }
+
+                            if (match == 1 && doctors[k][strlen(doctorId)] == '-') {
+                                found = 1;
+                            }
+                            k++;
+                        }
+
+                        if (found == 1) {
+                            // Add the visit and patient
+                            strcpy(visits[visitCount], visitDetails);
+                            strcpy(patients[visitCount], patientName);
+                            visitCount++;
+                            printf("Visit added successfully.\n");
+                            validInput = 1; // Exit loop
+                        } 
+                        else {
+                            printf("Error: Doctor not found.\n");
+                        }
+                    } 
+                    else {
+                        printf("Error: Invalid visit details.\n");
+                    }
+                } 
+                else {
+                    printf("Error: Incorrect format for visit details.\n");
+                }
+            }
+            else {
+                printf("Error: Invalid patient name.\n");
+            }
+        }
+    }
+    return visitCount;
+}
+
+
+// Function to list visits for a patient
+void listVisits(char visits[MAX_VISITS][MAX_CHAR], char patients[MAX_VISITS][MAX_CHAR], int visitCount) {
+    if (visitCount == 0) {
+        printf("No visits to list.\n");
+    } else {
+        char patientName[MAX_CHAR];
+        printf("Enter patient name: ");
+        fgets(patientName, MAX_CHAR, stdin);
+        patientName[strlen(patientName) - 1] = '\0';
+
+        if (validatePatientName(patientName) == 1) {
+            int found = 0, i = 0;
+            printf("Visits for %s:\n", patientName);
+            while (i < visitCount) {
+                if (strcmp(patients[i], patientName) == 0) {
+                    printf("\t%s\n", visits[i]);
+                    found = 1;
+                }
+                i++;
+            }
+            if (found == 0) {
+                printf("No visits found for %s.\n", patientName);
+            }
+        } else {
+            printf("Error: Invalid patient name.\n");
+        }
+    }
+}
+
+// Function to cancel a visit
+int cancelVisit(char visits[MAX_VISITS][MAX_CHAR], char patients[MAX_VISITS][MAX_CHAR], int visitCount) {
+    if (visitCount == 0) {
+        printf("No visits to cancel.\n");
+    } else {
+        char patientName[MAX_CHAR];
+        printf("Enter patient name: ");
+        fgets(patientName, MAX_CHAR, stdin);
+        patientName[strlen(patientName) - 1] = '\0';
+
+        if (validatePatientName(patientName) == 1) {
+            int found = 0, i = 0, j;
+            while (i < visitCount) {
+                if (strcmp(patients[i], patientName) == 0) {
+                    found = 1;
+                    printf("\t%d. %s\n", i + 1, visits[i]);
+                }
+                i++;
+            }
+            if (found == 1) {
+                printf("Enter the number of the visit to cancel: ");
+                char visitNumber[MAX_CHAR];
+                fgets(visitNumber, MAX_CHAR, stdin);
+                int visitIndex = atoi(visitNumber) - 1;
+
+                if (visitIndex >= 0 && visitIndex < visitCount && strcmp(patients[visitIndex], patientName) == 0) {
+                    for (j = visitIndex; j < visitCount - 1; j++) {
+                        strcpy(visits[j], visits[j + 1]);
+                        strcpy(patients[j], patients[j + 1]);
+                    }
+                    visitCount--;
+                    printf("Visit canceled successfully.\n");
+                } else {
+                    printf("Error: Invalid visit number.\n");
+                }
+            } else {
+                printf("No visits found for %s.\n", patientName);
+            }
+        } else {
+            printf("Error: Invalid patient name.\n");
+        }
+    }
+    return visitCount;
+}
+
+// Function to validate a doctor ID
+int validateDoctorId(char id[]) {
+    int valid = 1, i = 0;
+    if (strlen(id) != 6 || id[0] == '0') {
+        valid = 0;
+    } else {
+        while (i < strlen(id)) {
+            if (id[i] < '0' || id[i] > '9') {
+                valid = 0;
+            }
+            i++;
+        }
+    }
+    return valid;
+}
+
+// Function to validate a month
+int validateMonth(char month[]) {
+    int monthValue = atoi(month);
+    if (monthValue >= 1 && monthValue <= 12) {
+        return 1;
+    }
+    return 0;
+}
+
+// Custom function: Convert string to integer (ASCII to integer)
+int atoi(char str[]) {
+    int number = 0, i = 0;
+    while (i < strlen(str)) {
+        number = (number * 10) + (str[i] - '0');
+        i++;
+    }
+    return number;
+}
+
+// Custom function: Convert integer to string (integer to ASCII)
+void itoa(int number, char str[]) {
+    int i = 0, j = 0;
+    char temp[MAX_CHAR];
+    while (number > 0) {
+        temp[i] = (number % 10) + '0';
+        number /= 10;
+        i++;
+    }
+    for (j = 0; j < i; j++) {
+        str[j] = temp[i - j - 1];
+    }
+    str[j] = '\0';
+}
