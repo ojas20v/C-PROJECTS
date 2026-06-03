@@ -1,0 +1,26 @@
+There is a total of 5 emails.
+27
+zxvsa@klek.yy
+Category: U
+# links: 4
+Is spam? y [#]
+54
+liamneeson@zxy.com
+Category: U
+# links: 3
+Is spam? y [?]
+3
+clickbait@hotmail.com
+Category: U
+# links: 0
+Is spam? n [?]
+9
+quentin.t@gmail.com
+Category: I
+# links: 3
+Is spam? n [#]
+10
+potter@uni.edu
+Category: U
+# links: 0
+Is spam? n [?]
